@@ -83,6 +83,15 @@ class Htt:
             if task.get('state') == 1:
                 self.finish_task(task_id=task.get('taskId'), task_type='normal')
 
+        further_tasks = data['furtherTaskList']
+        for task in further_tasks:
+            if task.get('state') == 1:
+                self.finish_task(task_id=task.get('taskId'), task_type='further')
+            elif task.get('state') == 0:
+                task_id = task['taskId']
+                if task_id in [249, 248, 106, 250]:
+                    self.read_news(task_id)
+
         data = self.request(url='/frontend/sign/record', params=params, json=json, cookies=cookies)
         self.is_sign = data.get('state') != 0
 
@@ -108,9 +117,26 @@ class Htt:
             data = self.request(url='https://api.cashtoutiao.com/frontend/reward/multiple/draw',
                                 params=params, json=data)
 
+    def read_news(self, task_id):
+        self.random_wait(60, 80, '读新闻得金币')
+        params = (
+            ('userId', self.user_id),
+            ('loginId', self.loginid),
+            ('appVersion', self.app_version),
+            ('platform', '1'),
+            ('versionName', self.version_name),
+        )
+
+        data = {"loginId": self.loginid, "versionName": self.version_name, "taskId": int(task_id), "userId": self.user_id, "appVersion": self.app_version,
+                "platform": 1}
+
+        data = self.request(url='https://api.cashtoutiao.com/frontend/daily/task/revision/complete', params=params,
+                                json=data)
+        pprint(data)
+
     def finish_task(self, task_id, task_type='newbie'):
         cookies = {
-            'sensorsdata2015jssdkcross': '%7B%22distinct_id%22%3A%2217a9b5f3a0f345-0b29c0c8da24038-3b176850-370944-17a9b5f3a10667%22%2C%22%24device_id%22%3A%2217a9b5f3a0f345-0b29c0c8da24038-3b176850-370944-17a9b5f3a10667%22%2C%22props%22%3A%7B%22%24latest_traffic_source_type%22%3A%22%E7%9B%B4%E6%8E%A5%E6%B5%81%E9%87%8F%22%2C%22%24latest_referrer%22%3A%22%22%2C%22%24latest_referrer_host%22%3A%22%22%2C%22%24latest_search_keyword%22%3A%22%E6%9C%AA%E5%8F%96%E5%88%B0%E5%80%BC_%E7%9B%B4%E6%8E%A5%E6%89%93%E5%BC%80%22%7D%7D',
+            'sensorsdata2015jssdkcross': self.sensorsdata,
         }
 
         params = {
@@ -127,7 +153,7 @@ class Htt:
         if task_type == 'newbie':
             data = self.request(url='/frontend/newbie/task/draw', params=params, cookies=cookies, json=data)
 
-        if task_type == 'normal':
+        if task_type == 'normal' or task_type == 'further':
             data = self.request(url='/frontend/daily/task/revision/draw', params=params, cookies=cookies, json=data)
 
     def sign(self):
@@ -145,6 +171,7 @@ class Htt:
                 "userId": self.user_id, "appVersion": self.app_version, "platform": 1}
 
         data = self.request(url='/frontend/sign', params=params, json=json)
+        pprint(data)
 
     def lottery(self):
 
@@ -158,7 +185,7 @@ class Htt:
             'referer': f'http://page.huadongmedia.com/h5/product/lottery/index.html?mediaId=cashtoutiao&userId={self.user_id}',
         }
 
-        json = {"mediaId": "cashtoutiao", "userId": "153137064"}
+        json = {"mediaId": "cashtoutiao", "userId": self.user_id}
 
         for i in range(6):
             self.random_wait(5, 10)
@@ -200,32 +227,8 @@ class Htt:
         f = open('.htt.token', 'w')
         json.dump(data, f)
 
-    def get_articles(self):
-        import requests
-
-        cookies = {
-            'sensorsdata2015jssdkcross': self.sensorsdata,
-        }
-
-        params = {
-            'userId': str(self.user_id),
-            'loginId': str(self.loginid),
-            'appVersion': str(self.app_version),
-            'platform': '1',
-            'versionName': self.version_name,
-        }
-
-        data = {"deviceId":"6718ac1f4e204208b0eb53519a610cef","appVersion":1042,"userId":153137064,"versionName":"4.5.0","platform":1,"backVersion":"3","type":"toutiao","page":0}
-
-        response = requests.post('http://api.admin.cp.cashtoutiao.com/headLine/getVideoAndArticleNoCoverApi', params=params, cookies=cookies, data=data)
-
-        # NB. Original query string below. It seems impossible to parse and
-        # reproduce query strings 100% accurately so the one below is given
-        # in case the reproduced version is not "correct".
-        # response = requests.post('http://api.admin.cp.cashtoutiao.com/headLine/getVideoAndArticleNoCoverApi?userId=153137064&appVersion=1042&platform=1&versionName=4.5.0', headers=headers, cookies=cookies, data=data)
-
     def read(self):
-        for _ in range(random.randint(1, 5)):
+        for _ in range(random.randint(3, 7)):
             params = {
                 'userId': str(self.user_id),
                 'loginId': str(self.loginid),
@@ -272,7 +275,7 @@ class Htt:
             'platform': '1',
             'versionName': self.version_name,
         }
-        for _ in range(random.randint(2, 10)):
+        for _ in range(random.randint(4, 15)):
             self.random_wait(30, 30, '看视频30秒')
             data = {"versionName": self.version_name, "token": self.get_read_token(), "platform": 1, "count": 0,
                     "userId": self.user_id, "multiple": False, "channel": "video", "duration": 30,
